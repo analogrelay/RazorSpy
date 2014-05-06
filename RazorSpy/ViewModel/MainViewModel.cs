@@ -1,145 +1,179 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
-using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 using RazorSpy.Contracts;
 using RazorSpy.Contracts.SyntaxTree;
-using ReactiveUI;
 
 namespace RazorSpy.ViewModel
 {
     [Export]
-    public class MainViewModel : ReactiveObject
+    public class MainViewModel : INotifyPropertyChanged
     {
-        private ReactiveCollection<Lazy<IRazorEngine, IRazorEngineMetadata>> _engines = new ReactiveCollection<Lazy<IRazorEngine, IRazorEngineMetadata>>();
+        private ObservableCollection<Lazy<IRazorEngine, IRazorEngineMetadata>> _engines;
         private Lazy<IRazorEngine, IRazorEngineMetadata> _selectedEngine;
-        private string _razorCode;
         private RazorLanguage _selectedLanguage;
         private bool _designTimeMode;
+        private string _razorCode;
+
         private IEnumerable<Block> _generatedTree;
         private string _generatedCode;
         private string _status;
-        
-        private ObservableAsPropertyHelper<IEnumerable<RazorLanguage>> _languages;
-        private ObservableAsPropertyHelper<bool> _multiEngine;
-        private ObservableAsPropertyHelper<bool> _singleEngine;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private readonly DispatcherTimer _timer;
+
+        public MainViewModel()
+        {
+            PropertyChanged += MainViewModel_PropertyChanged;
+
+            _timer = new DispatcherTimer(DispatcherPriority.Background);
+            _timer.Tick += Regenerate;
+            _timer.Interval = TimeSpan.FromSeconds(.1);
+        }
+
+        private bool RaiseAndSetIfChanged<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (!object.Equals(field, value))
+            {
+                field = value;
+                Notify(propertyName);
+                return true;
+            }
+
+            return false;
+        }
+
+        private void Notify(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
 
         public string Status
         {
             get { return _status; }
-            set { _status = this.RaiseAndSetIfChanged(m => m.Status, value); }
+            set { RaiseAndSetIfChanged(ref _status, value); }
         }
 
         public string RazorCode
         {
             get { return _razorCode; }
-            set { _razorCode = this.RaiseAndSetIfChanged(m => m.RazorCode, value); }
+            set { RaiseAndSetIfChanged(ref _razorCode, value); }
         }
 
         [ImportMany]
-        public ReactiveCollection<Lazy<IRazorEngine, IRazorEngineMetadata>> Engines
+        public ObservableCollection<Lazy<IRazorEngine, IRazorEngineMetadata>> Engines
         {
             get { return _engines; }
-            set { _engines = this.RaiseAndSetIfChanged(m => m.Engines, value); }
+            set
+            {
+                _engines = value;
+                _engines.CollectionChanged += (sender, args) => Initialize();
+            }
         }
 
         public Lazy<IRazorEngine, IRazorEngineMetadata> SelectedEngine
         {
             get { return _selectedEngine; }
-            set { _selectedEngine = this.RaiseAndSetIfChanged(m => m.SelectedEngine, value); }
+            set
+            {
+                if (RaiseAndSetIfChanged(ref _selectedEngine, value))
+                {
+                    EnsureLanguage();
+
+                    Notify("Languages");
+                    Notify("SelectedLanguage");
+                }
+            }
         }
 
         public RazorLanguage SelectedLanguage
         {
             get { return _selectedLanguage; }
-            set { _selectedLanguage = this.RaiseAndSetIfChanged(m => m.SelectedLanguage, value); }
+            set { RaiseAndSetIfChanged(ref _selectedLanguage, value); }
         }
 
         public bool DesignTimeMode
         {
             get { return _designTimeMode; }
-            set { _designTimeMode = this.RaiseAndSetIfChanged(m => m.DesignTimeMode, value); }
+            set { RaiseAndSetIfChanged(ref _designTimeMode, value); }
         }
 
         public IEnumerable<Block> GeneratedTree
         {
             get { return _generatedTree; }
-            private set { _generatedTree = this.RaiseAndSetIfChanged(m => m.GeneratedTree, value); }
+            private set { RaiseAndSetIfChanged(ref _generatedTree, value); }
         }
 
         public string GeneratedCode
         {
             get { return _generatedCode; }
-            private set { _generatedCode = this.RaiseAndSetIfChanged(m => m.GeneratedCode, value); }
+            private set { RaiseAndSetIfChanged(ref _generatedCode, value); }
         }
 
         public IEnumerable<RazorLanguage> Languages
         {
-            get { return _languages.Value; }
+            get
+            {
+                return SelectedEngine != null ? SelectedEngine.Value.Languages : null;
+            }
         }
 
-        public bool MultiEngine
+        private void MainViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            get { return _multiEngine.Value; }
-        }
-
-        public bool SingleEngine
-        {
-            get { return _singleEngine.Value; }
-        }
-
-        public MainViewModel()
-        {
-            _multiEngine = this.ObservableToProperty(
-                Engines.Changed.Select(_ => Engines.Count > 1),
-                vm => vm.MultiEngine);
-            _singleEngine = this.ObservableToProperty(
-                Engines.Changed.Select(_ => Engines.Count == 1),
-                vm => vm.SingleEngine);
-            _languages = this.ObservableToProperty(
-                this.ObservableForProperty(vm => vm.SelectedEngine)
-                    .Select(_ => SelectedEngine.Value.Languages),
-                vm => vm.Languages);
-            _languages.Subscribe(_ => EnsureLanguage());
-            Engines.Changed.Subscribe(_ => EnsureEngine());
-
-            Observable.Merge(
-                this.ObservableForProperty(vm => vm.DesignTimeMode).IgnoreValues(),
-                this.ObservableForProperty(vm => vm.SelectedEngine).IgnoreValues(),
-                this.ObservableForProperty(vm => vm.SelectedLanguage).IgnoreValues(),
-                this.ObservableForProperty(vm => vm.RazorCode).IgnoreValues())
-                .ObserveOn(RxApp.DeferredScheduler)
-                .Subscribe(_ => Regenerate());
-
-            this.PropertyChanged += MainViewModel_PropertyChanged;
-        }
-
-        void MainViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
+            switch (e.PropertyName)
+            {
+                case "DesignTimeMode":
+                case "SelectedEngine":
+                case "SelectedLanguage":
+                case "RazorCode":
+                    _timer.Stop();
+                    _timer.Start();
+                    break;
+            }
         }
 
         private void EnsureLanguage()
         {
-            if (Languages != null && Languages.Any() && (SelectedLanguage == null || !Languages.Contains(SelectedLanguage)))
+            RazorLanguage selected = SelectedLanguage;
+
+            if (selected == null)
             {
                 SelectedLanguage = Languages.FirstOrDefault();
             }
-        }
-
-        private void EnsureEngine()
-        {
-            if (Engines != null && Engines.Any() && (SelectedEngine == null || !Engines.Contains(SelectedEngine)))
+            else if (!Languages.Contains(selected))
             {
-                SelectedEngine = Engines.FirstOrDefault();
+                SelectedLanguage = Languages.FirstOrDefault(l => l.Id == selected.Id) ?? Languages.FirstOrDefault();
             }
         }
 
-        private void Regenerate()
+        private void Initialize()
         {
-            if (SelectedEngine != null && SelectedLanguage != null && !String.IsNullOrEmpty(RazorCode))
+            _selectedEngine = Engines.FirstOrDefault();
+
+            if (_selectedEngine != null)
             {
+                EnsureLanguage();
+            }
+        }
+
+        private void Regenerate(object source, EventArgs args)
+        {
+            _timer.Stop();
+
+            if (SelectedEngine != null && !String.IsNullOrEmpty(RazorCode))
+            {
+                EnsureLanguage();
+
                 Status = "Compiling...";
                 // Configure the host
                 IRazorEngine engine = SelectedEngine.Value;
