@@ -1,6 +1,4 @@
-﻿using System;
-using System.CodeDom;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Web.Razor;
@@ -18,7 +16,8 @@ namespace RazorSpy.Engines.v2
 
         public IEnumerable<RazorLanguage> Languages
         {
-            get {
+            get
+            {
                 yield return CSharpLanguage;
                 yield return VBLanguage;
             }

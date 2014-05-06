@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition.Hosting;
-using System.Configuration;
-using System.Data;
+﻿using System.ComponentModel.Composition.Hosting;
 using System.IO;
-using System.Linq;
 using System.Windows;
-using ReactiveUI;
 
 namespace RazorSpy
 {
@@ -15,18 +9,18 @@ namespace RazorSpy
     /// </summary>
     public partial class App : Application
     {
-        private static CompositionContainer container;
+        private static CompositionContainer _container;
 
         public static CompositionContainer Container
         {
-            get { return container; }
+            get { return _container; }
         }
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            RxApp.GetFieldNameForPropertyNameFunc = p => "_" + Char.ToLower(p[0]) + p.Substring(1);
+            //RxApp.GetFieldNameForPropertyNameFunc = p => "_" + Char.ToLower(p[0]) + p.Substring(1);
 
             AssemblyCatalog thisAsm = new AssemblyCatalog(typeof(App).Assembly);
             AggregateCatalog catalog = new AggregateCatalog();
@@ -38,8 +32,8 @@ namespace RazorSpy
                     catalog.Catalogs.Add(new DirectoryCatalog(dir));
                 }
             }
-            container = new CompositionContainer(catalog);
-            container.Compose(new CompositionBatch());
+            _container = new CompositionContainer(catalog);
+            _container.Compose(new CompositionBatch());
         }
     }
 }

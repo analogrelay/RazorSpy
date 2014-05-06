@@ -5,19 +5,18 @@ using System.Web.Razor;
 using RazorSpy.Contracts;
 using RazorSpy.Contracts.SyntaxTree;
 
-namespace RazorSpy.Engines.v1
+namespace RazorSpy.Engines.v3
 {
     [Export(typeof(IRazorEngine))]
-    [ExportMetadata("Version", "1.0.0.0")]
-    public class RazorEngineV1 : IRazorEngine
+    [ExportMetadata("Version", "3.0.0.0")]
+    public class RazorEngineV3 : IRazorEngine
     {
-        internal static RazorLanguage CSharpLanguage = new RazorLanguage("csharp", "C#");
-        internal static RazorLanguage VBLanguage = new RazorLanguage("vb", "VB");
+        internal static readonly RazorLanguage CSharpLanguage = new RazorLanguage("csharp", "C#");
+        internal readonly static RazorLanguage VBLanguage = new RazorLanguage("vb", "VB");
 
         public IEnumerable<RazorLanguage> Languages
         {
-            get
-            {
+            get {
                 yield return CSharpLanguage;
                 yield return VBLanguage;
             }
@@ -25,7 +24,7 @@ namespace RazorSpy.Engines.v1
 
         public ITemplateHost CreateHost()
         {
-            return new TemplateHostV1();
+            return new TemplateHostV3();
         }
 
         public GenerationResult Generate(TextReader document, ITemplateHost host)

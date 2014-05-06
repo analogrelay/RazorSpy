@@ -10,10 +10,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RazorSpy.Engines.v2</RootNamespace>
     <AssemblyName>RazorSpy.Engines.v2</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,15 +33,14 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Web.Razor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\AspNetRazor.Core.2.0.20126.16343\lib\net40\System.Web.Razor.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="..\packages\Microsoft.AspNet.Razor.2.0.30506.0\lib\net40\System.Web.Razor.dll">
+      <Name>System.Web.Razor (2.0)</Name>
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -65,10 +66,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if not exist "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages" mkdir "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages"
-if not exist "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)" mkdir "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"
-copy "$(TargetDir)\*.dll" "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"
-copy "$(TargetDir)\*.pdb" "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"</PostBuildEvent>
+    <PostBuildEvent>
+      if not exist "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages" mkdir "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages"
+      if not exist "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)" mkdir "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"
+      copy "$(TargetDir)\*.dll" "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"
+      copy "$(TargetDir)\*.pdb" "$(SolutionDir)\RazorSpy\bin\$(ConfigurationName)\Packages\$(ProjectName)"
+    </PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -42,6 +42,7 @@ namespace RazorSpy
             {
                 this.RegisterWithContainer();
             }
+
             InitializeComponent();
         }
     }
