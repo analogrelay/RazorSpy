@@ -1,7 +1,0 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/RazorSpy.Styles;component/Resources/Styles.xaml" />
-        <ResourceDictionary Source="/RazorSpy.Styles;component/Resources/Icons.xaml" />
-    </ResourceDictionary.MergedDictionaries>
-</ResourceDictionary>
